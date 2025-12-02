@@ -46,14 +46,19 @@ func (b *todoServiceBuilder) Build() TodoService {
 }
 
 // Create creates a new todo item
+// Implements FR-001, FR-006, FR-009, FR-ERR-002, FR-ERR-003
 func (s *todoService) Create(ctx context.Context, req *todov1.CreateTodoRequest) (*todov1.Todo, error) {
-	// Validate input
+	// FR-006: Trim leading/trailing whitespace while preserving internal whitespace
+	// Then validate that trimmed result is not empty
 	desc := strings.TrimSpace(req.Description)
 	if desc == "" {
+		// FR-ERR-003: User-friendly inline validation message
 		return nil, fmt.Errorf("create todo: %w", ErrEmptyDescription)
 	}
+	
+	// FR-009: Enforce maximum length of 500 characters (after trimming)
 	if len(desc) > 500 {
-		return nil, fmt.Errorf("create todo: description too long (max 500 chars): %w", ErrInvalidInput)
+		return nil, fmt.Errorf("create todo: %w", ErrDescriptionTooLong)
 	}
 
 	// Create model
@@ -62,7 +67,7 @@ func (s *todoService) Create(ctx context.Context, req *todov1.CreateTodoRequest)
 		Completed:   false,
 	}
 
-	// Save to database
+	// Save to database (FR-005: Persist todos)
 	if err := s.db.WithContext(ctx).Create(todo).Error; err != nil {
 		return nil, fmt.Errorf("create todo in database: %w", err)
 	}
@@ -161,12 +166,15 @@ func (s *todoService) Update(ctx context.Context, req *todov1.UpdateTodoRequest)
 	updates := make(map[string]interface{})
 
 	if req.Description != nil {
+		// FR-006: Trim leading/trailing whitespace while preserving internal whitespace
 		desc := strings.TrimSpace(*req.Description)
 		if desc == "" {
+			// FR-ERR-003: User-friendly inline validation message
 			return nil, fmt.Errorf("update todo: %w", ErrEmptyDescription)
 		}
+		// FR-009: Enforce maximum length of 500 characters (after trimming)
 		if len(desc) > 500 {
-			return nil, fmt.Errorf("update todo: description too long (max 500 chars): %w", ErrInvalidInput)
+			return nil, fmt.Errorf("update todo: %w", ErrDescriptionTooLong)
 		}
 		updates["description"] = desc
 	}

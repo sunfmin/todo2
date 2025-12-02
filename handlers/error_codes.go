@@ -18,11 +18,13 @@ type ErrorCode struct {
 }
 
 // Errors is a singleton containing all error codes
+// Messages aligned with spec requirements (FR-ERR-003)
 var Errors = struct {
-	InvalidRequest  ErrorCode
-	TodoNotFound    ErrorCode
-	EmptyDescription ErrorCode
-	InternalError   ErrorCode
+	InvalidRequest      ErrorCode
+	TodoNotFound        ErrorCode
+	EmptyDescription    ErrorCode
+	DescriptionTooLong  ErrorCode
+	InternalError       ErrorCode
 }{
 	InvalidRequest: ErrorCode{
 		Code:       "INVALID_REQUEST",
@@ -38,9 +40,15 @@ var Errors = struct {
 	},
 	EmptyDescription: ErrorCode{
 		Code:       "EMPTY_DESCRIPTION",
-		Message:    "Todo description cannot be empty",
+		Message:    "please enter a task", // Spec requirement (line 77) - lowercase to match service error
 		HTTPStatus: http.StatusBadRequest,
 		ServiceErr: services.ErrEmptyDescription,
+	},
+	DescriptionTooLong: ErrorCode{
+		Code:       "DESCRIPTION_TOO_LONG",
+		Message:    "todo description must be 500 characters or less", // Spec requirement (line 78)
+		HTTPStatus: http.StatusBadRequest,
+		ServiceErr: services.ErrDescriptionTooLong,
 	},
 	InternalError: ErrorCode{
 		Code:       "INTERNAL_ERROR",
@@ -58,6 +66,7 @@ func RespondWithError(w http.ResponseWriter, errCode ErrorCode) {
 }
 
 // HandleServiceError automatically maps service errors to HTTP responses
+// Implements FR-ERR-001: Provide clear feedback when operations fail
 func HandleServiceError(w http.ResponseWriter, err error) {
 	// Check context errors first
 	if errors.Is(err, context.Canceled) {
@@ -70,9 +79,11 @@ func HandleServiceError(w http.ResponseWriter, err error) {
 	}
 
 	// Check service error mapping
+	// Order matters: check more specific errors first
 	allErrors := []ErrorCode{
-		Errors.TodoNotFound,
 		Errors.EmptyDescription,
+		Errors.DescriptionTooLong,
+		Errors.TodoNotFound,
 		Errors.InvalidRequest,
 	}
 

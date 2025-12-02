@@ -19,7 +19,7 @@ Users need to quickly capture tasks they need to complete by adding them to a li
 
 1. **US1-AS1**: **Given** the app is open, **When** the user enters "Buy groceries" and submits, **Then** "Buy groceries" appears in the todo list
 2. **US1-AS2**: **Given** the app has existing todos, **When** the user adds a new todo "Call dentist", **Then** the new todo appears in the list along with existing todos
-3. **US1-AS3**: **Given** the user tries to add an empty todo, **When** they submit without entering text, **Then** the system prevents submission and shows a helpful message
+3. **US1-AS3**: **Given** the user tries to add an empty todo, **When** they submit without entering text or leave the input field empty, **Then** the system prevents submission and shows inline validation message "Please enter a task"
 
 ---
 
@@ -74,8 +74,10 @@ Users need to see all their tasks in one place to understand what needs to be do
 ### Edge Cases
 
 **Invalid or Missing Input**:
-- When user tries to add a todo with only whitespace, system prevents submission and shows message "Please enter a task"
-- When user tries to add a todo exceeding reasonable length (e.g., 500 characters), system either truncates with warning or prevents submission
+- When user tries to add a todo with only whitespace (regular spaces, tabs, or full-width spaces), system trims the input first, then prevents submission if result is empty and shows message "Please enter a task"
+- When user enters a todo with leading/trailing spaces (e.g., "  Buy milk  "), system automatically trims to "Buy milk" before saving
+- When user enters a todo with multiple internal spaces (e.g., "Buy  milk  today"), system preserves the spacing as-is
+- When user tries to add a todo exceeding 500 characters, system prevents submission and shows message "Todo title must be 500 characters or less"
 - When user enters special characters or emojis, system accepts and displays them correctly
 
 **Boundary Conditions**:
@@ -100,14 +102,16 @@ Users need to see all their tasks in one place to understand what needs to be do
 - **FR-003**: System MUST allow users to mark todo items as complete or incomplete
 - **FR-004**: System MUST allow users to delete todo items
 - **FR-005**: System MUST persist todo items so they remain available after closing and reopening the app
-- **FR-006**: System MUST prevent adding empty or whitespace-only todos
+- **FR-006**: System MUST trim leading and trailing whitespace from todo titles while preserving internal whitespace, then prevent adding if the trimmed result is empty
+- **FR-009**: System MUST enforce a maximum length of 500 characters for todo titles (after trimming)
 - **FR-007**: System MUST visually distinguish between completed and active todos
 - **FR-008**: System MUST show an empty state message when no todos exist
 
 **Error Handling Requirements**:
 - **FR-ERR-001**: System MUST provide clear feedback when todo operations fail (add, delete, update)
 - **FR-ERR-002**: System MUST prevent data loss by validating operations before execution
-- **FR-ERR-003**: System MUST show user-friendly messages for validation errors (e.g., "Please enter a task" for empty input)
+- **FR-ERR-003**: System MUST show user-friendly validation error messages inline near the input field (e.g., red text below input showing "Please enter a task" for empty input)
+- **FR-ERR-004**: System MUST validate todo input when the user leaves the input field (on blur) and again on form submission
 
 ### Key Entities
 
@@ -134,3 +138,13 @@ All acceptance scenarios and edge cases listed above MUST be:
 - **Independent**: Each scenario can be tested separately
 
 Every acceptance scenario (US#-AS#) listed above will have a corresponding automated test that validates the expected outcome matches the "Then" clause.
+
+## Clarifications
+
+### Session 2025-12-02
+
+- Q: Should the system trim leading/trailing whitespace from todo titles before validation, or reject any input containing leading/trailing spaces? → A: Trim whitespace automatically (e.g., "  Buy milk  " becomes "Buy milk") then validate
+- Q: Should internal whitespace (spaces between words) be preserved, normalized to single spaces, or left as-is in todo titles? → A: Preserve internal whitespace as-is (e.g., "Buy  milk  today" stays "Buy  milk  today")
+- Q: What should be the maximum allowed length for a todo title? → A: 500 characters
+- Q: Should the validation error messages be shown inline near the input field, as a toast/notification, or both? → A: Inline near input field (e.g., red text below the input box)
+- Q: Should validation occur on every keystroke (real-time), only on form submission, or on blur (when user leaves the input field)? → A: On blur + submission (validate when leaving field and on submit)

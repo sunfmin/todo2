@@ -102,7 +102,7 @@ func TestTodoAPI_Create(t *testing.T) {
 			description: "",
 			wantCode:    http.StatusBadRequest,
 			wantErr:     true,
-			errContains: "description",
+			errContains: "please enter a task", // Spec requirement (line 77)
 		},
 		{
 			name:        "Edge case: Whitespace-only todo",
@@ -110,7 +110,15 @@ func TestTodoAPI_Create(t *testing.T) {
 			description: "   ",
 			wantCode:    http.StatusBadRequest,
 			wantErr:     true,
-			errContains: "description",
+			errContains: "please enter a task", // Spec requirement (line 77)
+		},
+		{
+			name:        "Edge case: Full-width space only",
+			scenario:    "When user tries to add todo with only full-width spaces (CJK), system prevents submission",
+			description: "　　　", // U+3000 full-width space
+			wantCode:    http.StatusBadRequest,
+			wantErr:     true,
+			errContains: "please enter a task",
 		},
 		{
 			name:        "Edge case: Very long todo (500+ chars)",
@@ -118,7 +126,7 @@ func TestTodoAPI_Create(t *testing.T) {
 			description: strings.Repeat("a", 501),
 			wantCode:    http.StatusBadRequest,
 			wantErr:     true,
-			errContains: "invalid", // Error message is "Invalid request data"
+			errContains: "must be 500 characters or less", // Spec requirement (line 78)
 		},
 		{
 			name:        "Edge case: Special characters",
@@ -481,7 +489,7 @@ func TestTodoAPI_Update(t *testing.T) {
 		},
 		{
 			name:     "Update with empty description",
-			scenario: "When user tries to set empty description, returns validation error",
+			scenario: "When user tries to set empty description, returns validation error with clear message",
 			updateReq: func(id string) *pb.UpdateTodoRequest {
 				desc := ""
 				return &pb.UpdateTodoRequest{Id: id, Description: &desc}

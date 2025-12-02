@@ -12,5 +12,9 @@ var (
 	ErrInvalidInput = errors.New("invalid input")
 
 	// ErrEmptyDescription is returned when todo description is empty or whitespace-only
-	ErrEmptyDescription = errors.New("todo description cannot be empty")
+	// Spec requirement (line 77): "Please enter a task"
+	ErrEmptyDescription = errors.New("please enter a task")
+
+	// ErrDescriptionTooLong is returned when description exceeds 500 characters
+	ErrDescriptionTooLong = errors.New("todo description must be 500 characters or less")
 )

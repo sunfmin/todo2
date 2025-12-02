@@ -38,9 +38,13 @@
         }
 
         .add-todo-form {
+            margin-bottom: 30px;
+        }
+
+        .input-wrapper {
             display: flex;
             gap: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 8px;
         }
 
         #todoInput {
@@ -55,6 +59,33 @@
         #todoInput:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        #todoInput.error {
+            border-color: #dc3545;
+        }
+
+        .validation-error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-left: 4px;
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .validation-error.show {
+            display: block;
         }
 
         #addButton {
@@ -212,14 +243,17 @@
         <div id="errorMessage" class="error-message"></div>
         
         <form class="add-todo-form" id="addTodoForm">
-            <input 
-                type="text" 
-                id="todoInput" 
-                placeholder="What needs to be done?" 
-                maxlength="500"
-                required
-            >
-            <button type="submit" id="addButton">Add</button>
+            <div class="input-wrapper">
+                <input
+                    type="text"
+                    id="todoInput"
+                    placeholder="What needs to be done?"
+                    maxlength="500"
+                    autocomplete="off"
+                >
+                <button type="submit" id="addButton">Add</button>
+            </div>
+            <div id="validationError" class="validation-error"></div>
         </form>
 
         <div id="loadingState" class="loading" style="display: none;">
@@ -261,7 +295,57 @@
         });
 
         function setupEventListeners() {
-            document.getElementById('addTodoForm').addEventListener('submit', handleAddTodo);
+            const form = document.getElementById('addTodoForm');
+            const input = document.getElementById('todoInput');
+            
+            form.addEventListener('submit', handleAddTodo);
+            
+            // Validate on blur (FR-ERR-004)
+            input.addEventListener('blur', () => {
+                validateInput(input.value);
+            });
+            
+            // Clear validation error when user starts typing
+            input.addEventListener('input', () => {
+                if (input.classList.contains('error')) {
+                    clearValidationError();
+                }
+            });
+        }
+
+        // Validate input and show inline error (FR-ERR-003, FR-ERR-004)
+        function validateInput(value) {
+            const trimmed = value.trim();
+            const validationError = document.getElementById('validationError');
+            const input = document.getElementById('todoInput');
+            
+            // Check if empty after trimming (FR-006)
+            if (value && !trimmed) {
+                input.classList.add('error');
+                validationError.textContent = 'Please enter a task';
+                validationError.classList.add('show');
+                return false;
+            }
+            
+            // Check length (FR-009)
+            if (trimmed.length > 500) {
+                input.classList.add('error');
+                validationError.textContent = 'Todo title must be 500 characters or less';
+                validationError.classList.add('show');
+                return false;
+            }
+            
+            clearValidationError();
+            return true;
+        }
+
+        // Clear validation error styling
+        function clearValidationError() {
+            const input = document.getElementById('todoInput');
+            const validationError = document.getElementById('validationError');
+            
+            input.classList.remove('error');
+            validationError.classList.remove('show');
         }
 
         // Load todos from API
@@ -291,15 +375,23 @@
             e.preventDefault();
             
             const input = document.getElementById('todoInput');
-            const description = input.value.trim();
+            const rawValue = input.value;
+            const description = rawValue.trim();
 
+            // Validate on submission (FR-ERR-004)
             if (!description) {
-                showError('Please enter a todo description');
+                const validationError = document.getElementById('validationError');
+                input.classList.add('error');
+                validationError.textContent = 'Please enter a task';
+                validationError.classList.add('show');
                 return;
             }
 
             if (description.length > 500) {
-                showError('Todo description must be 500 characters or less');
+                const validationError = document.getElementById('validationError');
+                input.classList.add('error');
+                validationError.textContent = 'Todo title must be 500 characters or less';
+                validationError.classList.add('show');
                 return;
             }
 
@@ -323,6 +415,7 @@
                 const newTodo = await response.json();
                 todos.unshift(newTodo); // Add to beginning (newest first)
                 input.value = '';
+                clearValidationError();
                 renderTodos();
                 updateStats();
                 hideError();
