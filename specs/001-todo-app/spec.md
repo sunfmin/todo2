@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "create very simple todo app"
 
+## Clarifications
+
+### Session 2025-12-02
+
+- Q: When validating todo titles to prevent "whitespace-only" input, which whitespace characters should be considered invalid? → A: All Unicode whitespace (spaces, tabs, newlines, non-breaking spaces, etc.)
+- Q: Should leading and trailing whitespace be automatically trimmed from valid todo titles, or preserved as entered? → A: Preserve all whitespace exactly as entered
+- Q: What is the maximum allowed length for a todo title? → A: 500 characters
+- Q: When a todo title contains only whitespace after validation (e.g., user enters "   " with spaces), should the validation check happen before or after any potential trimming operation? → A: Validate raw input (check for whitespace-only before any processing)
+- Q: Should the system allow newline characters within todo titles, or should they be rejected/converted? → A: Allow newlines (multi-line todos)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Add Todo Items (Priority: P1)
@@ -20,6 +30,11 @@ Users need to quickly capture tasks they need to complete by adding them to a li
 1. **US1-AS1**: **Given** the app is open, **When** the user enters "Buy groceries" and submits, **Then** "Buy groceries" appears in the todo list
 2. **US1-AS2**: **Given** the app has existing todos, **When** the user adds a new todo "Call dentist", **Then** the new todo appears in the list along with existing todos
 3. **US1-AS3**: **Given** the user tries to add an empty todo, **When** they submit without entering text, **Then** the system prevents submission and shows a helpful message
+4. **US1-AS4**: **Given** the user tries to add a todo with only Unicode whitespace characters (spaces, tabs, newlines, non-breaking spaces), **When** they submit, **Then** the system prevents submission and shows message "Please enter a task"
+5. **US1-AS5**: **Given** the user enters a todo with leading or trailing whitespace like " Buy milk ", **When** they submit, **Then** the todo is stored and displayed exactly as entered with all whitespace preserved
+6. **US1-AS6**: **Given** the user enters a todo with exactly 500 characters, **When** they submit, **Then** the todo is accepted and stored
+7. **US1-AS7**: **Given** the user tries to enter a todo exceeding 500 characters, **When** they submit, **Then** the system prevents submission and shows message "Todo must be 500 characters or less"
+8. **US1-AS8**: **Given** the user enters a todo with newline characters like "Buy groceries\n- Milk\n- Bread", **When** they submit, **Then** the todo is stored and displayed as a multi-line item preserving all newlines
 
 ---
 
@@ -74,14 +89,14 @@ Users need to see all their tasks in one place to understand what needs to be do
 ### Edge Cases
 
 **Invalid or Missing Input**:
-- When user tries to add a todo with only whitespace, system prevents submission and shows message "Please enter a task"
-- When user tries to add a todo exceeding reasonable length (e.g., 500 characters), system either truncates with warning or prevents submission
-- When user enters special characters or emojis, system accepts and displays them correctly
+- When user tries to add a todo with only Unicode whitespace characters (including spaces, tabs, newlines, non-breaking spaces, zero-width spaces, etc.), system prevents submission and shows message "Please enter a task"
+- When user tries to add a todo exceeding 500 characters, system prevents submission and shows message "Todo must be 500 characters or less"
+- When user enters special characters, emojis, or newline characters, system accepts and displays them correctly (including multi-line display for newlines)
 
 **Boundary Conditions**:
 - When no todos exist, system shows helpful empty state message
 - When user has many todos (e.g., 100+), system displays them all without performance degradation
-- When todo text is very long, system displays it without breaking the layout
+- When todo text is very long or contains multiple lines, system displays it without breaking the layout
 
 **Data Conflicts**:
 - When user tries to delete a todo that no longer exists (edge case in multi-device scenarios), system handles gracefully with appropriate message
@@ -100,14 +115,15 @@ Users need to see all their tasks in one place to understand what needs to be do
 - **FR-003**: System MUST allow users to mark todo items as complete or incomplete
 - **FR-004**: System MUST allow users to delete todo items
 - **FR-005**: System MUST persist todo items so they remain available after closing and reopening the app
-- **FR-006**: System MUST prevent adding empty or whitespace-only todos
+- **FR-006**: System MUST validate todo input against the raw, unprocessed input string to check for empty or whitespace-only content (where whitespace includes all Unicode whitespace characters: spaces, tabs, newlines, non-breaking spaces, zero-width spaces, etc.), and if validation passes, preserve all leading, trailing, internal whitespace, and newline characters in the stored todo title exactly as entered, supporting multi-line todos
+- **FR-006a**: System MUST enforce a maximum length of 500 characters for todo titles and reject submissions exceeding this limit with message "Todo must be 500 characters or less"
 - **FR-007**: System MUST visually distinguish between completed and active todos
 - **FR-008**: System MUST show an empty state message when no todos exist
 
 **Error Handling Requirements**:
 - **FR-ERR-001**: System MUST provide clear feedback when todo operations fail (add, delete, update)
 - **FR-ERR-002**: System MUST prevent data loss by validating operations before execution
-- **FR-ERR-003**: System MUST show user-friendly messages for validation errors (e.g., "Please enter a task" for empty input)
+- **FR-ERR-003**: System MUST show user-friendly messages for validation errors (e.g., "Please enter a task" for empty or whitespace-only input)
 
 ### Key Entities
 
