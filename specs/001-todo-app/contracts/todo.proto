@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package todo.v1;
+
+option go_package = "github.com/yourorg/todo-app/api/gen/v1;todov1";
+
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+// Todo represents a task item
+message Todo {
+    string id = 1;
+    string description = 2;
+    bool completed = 3;
+    google.protobuf.Timestamp created_at = 4;
+    google.protobuf.Timestamp updated_at = 5;
+}
+
+// CreateTodoRequest for creating a new todo
+message CreateTodoRequest {
+    string description = 1 [
+        (validate.rules).string = {
+            min_len: 1,
+            max_len: 500,
+            pattern: "^\\S.*$"  // Must not start with whitespace
+        }
+    ];
+}
+
+// GetTodoRequest for retrieving a single todo
+message GetTodoRequest {
+    string id = 1 [(validate.rules).string.uuid = true];
+}
+
+// UpdateTodoRequest for updating a todo
+message UpdateTodoRequest {
+    string id = 1 [(validate.rules).string.uuid = true];
+    optional string description = 2 [
+        (validate.rules).string = {
+            min_len: 1,
+            max_len: 500,
+            pattern: "^\\S.*$"
+        }
+    ];
+    optional bool completed = 3;
+}
+
+// DeleteTodoRequest for deleting a todo
+message DeleteTodoRequest {
+    string id = 1 [(validate.rules).string.uuid = true];
+}
+
+// ListTodosRequest for listing todos with pagination
+message ListTodosRequest {
+    int32 limit = 1 [
+        (validate.rules).int32 = {
+            gte: 1,
+            lte: 100
+        }
+    ];
+    int32 offset = 2 [(validate.rules).int32.gte = 0];
+    optional bool completed = 3;  // Filter by completion status
+}
+
+// ListTodosResponse contains paginated todos
+message ListTodosResponse {
+    repeated Todo todos = 1;
+    int32 total = 2;
+    int32 limit = 3;
+    int32 offset = 4;
+}
+
+// Empty response for delete operation
+message DeleteTodoResponse {}

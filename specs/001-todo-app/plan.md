@@ -1,27 +1,74 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Simple Todo App
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `001-todo-app` | **Date**: 2025-12-02 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/001-todo-app/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+A simple todo application that allows users to add, view, mark as complete/incomplete, and delete todo items. The app must persist data across sessions and provide a clean, intuitive interface for task management. This is a web-based application using Go backend with PostgreSQL for data persistence.
 
 ## Technical Context
 
-**Stack**: Go 1.25+, PostgreSQL 15+, GORM, Protobuf, OpenTracing, testcontainers-go  
-**Project Type**: [single/web/mobile]  
-**Target**: Linux server (containerized)  
-**Performance**: [e.g., 1000 req/s, <100ms p95 or NEEDS CLARIFICATION]  
-**Scale**: [e.g., 10k users, 1M req/day or NEEDS CLARIFICATION]
+**Stack**: Go 1.25+, PostgreSQL 15+, GORM, Protobuf, OpenTracing, testcontainers-go
+**Project Type**: Single web application (API + static frontend)
+**Target**: Linux server (containerized)
+**Performance**: 100 req/s with <200ms p95 latency (resolved in research.md)
+**Scale**: Single user with up to 10,000 todos (resolved in research.md)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Testing Requirements
+- ✅ Integration tests with real PostgreSQL (Principle I)
+- ✅ Table-driven test design (Principle II)
+- ✅ Comprehensive edge case coverage (Principle III)
+- ✅ ServeHTTP endpoint testing via root mux (Principle IV)
+- ✅ Protobuf data structures for API (Principle V)
+- ✅ Continuous test verification after every change (Principle VI)
+- ✅ Root cause tracing for debugging (Principle VII)
+- ✅ Acceptance scenario coverage - All US#-AS# scenarios mapped to tests (Principle VIII)
+- ✅ Test coverage >80% for business logic (Principle IX)
+
+### Architecture Requirements
+- ✅ Service layer with dependency injection (Principle X)
+- ✅ Services in public packages, models in internal/ (Principle X)
+- ✅ Service methods use protobuf structs only (Principle X)
+- ✅ Distributed tracing with OpenTracing (Principle XI)
+- ✅ Context-aware operations throughout (Principle XII)
+- ✅ Comprehensive error handling with sentinel errors (Principle XIII)
+
+### Violations/Justifications
+None - This is a standard CRUD application that fits the constitution perfectly.
+
+### Post-Design Re-evaluation (Phase 1 Complete)
+
+**Date**: 2025-12-02
+
+All constitution requirements remain satisfied after design phase:
+
+✅ **Testing**: All 13 acceptance scenarios (US1-AS1 through US4-AS3) will be mapped to integration tests using table-driven design with real PostgreSQL via testcontainers.
+
+✅ **Architecture**:
+- Services in public `services/` package returning protobuf types
+- Models in `internal/models/` (GORM only)
+- Handlers in public `handlers/` package with integration tests
+- Service methods use protobuf structs only (no primitives)
+
+✅ **Error Handling**:
+- Service layer: Sentinel errors (ErrTodoNotFound, ErrInvalidInput, ErrEmptyDescription)
+- HTTP layer: Error code singleton with automatic ServiceErr mapping
+- All errors will have test cases
+
+✅ **Tracing**: OpenTracing spans at HTTP and service level (NoopTracer for development)
+
+✅ **Context**: All operations context-aware (ctx as first parameter)
+
+✅ **Data Model**: Single entity (Todo) with proper validation, indexing, and protobuf contracts defined
+
+**Conclusion**: Design is constitution-compliant. Ready for Phase 2 (task breakdown).
 
 ## Project Structure
 
@@ -112,8 +159,46 @@ shared/                    # Shared libraries across services
 └── database/
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Using Option 1 (Single Go API) as this is a simple todo application that doesn't require microservices architecture. The structure will be:
+
+```text
+api/
+├── proto/v1/
+│   └── todo.proto          # Todo API definitions
+└── gen/v1/
+    ├── todo.pb.go
+    └── todo.pb.validate.go
+
+services/
+├── todo_service.go         # Business logic
+├── errors.go              # Sentinel errors
+└── migrations.go          # AutoMigrate() function
+
+handlers/
+├── todo_handler.go        # HTTP handlers
+├── todo_handler_test.go   # Integration tests
+├── error_codes.go         # HTTP error codes
+└── routes.go              # Routing configuration
+
+internal/
+├── models/
+│   └── todo.go            # GORM model
+├── middleware/
+│   ├── logging.go
+│   └── tracing.go
+└── config/
+    └── config.go
+
+cmd/api/
+└── main.go                # Application entry point
+
+testutil/
+├── fixtures.go            # Test fixtures
+└── db.go                  # Test database setup
+
+static/                    # Frontend files (HTML/CSS/JS)
+└── index.html
+```
 
 **Architecture** (Constitution Principle X):
 - Services/handlers: PUBLIC packages (return protobuf, reusable)

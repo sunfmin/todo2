@@ -1,0 +1,50 @@
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
+specs/
+docs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Go
+vendor/
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Generated files (will be regenerated in container)
+api/gen/
+
+# Test files
+*_test.go
+testutil/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+bin/
+tmp/
+temp/
+
+# Docker
+docker-compose.yml
+Dockerfile*
+.dockerignore
